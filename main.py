@@ -35,6 +35,37 @@ def CreateBase(map):
             else:
                 position[i][j][0] = -1
                 position[i][j][1] = -1
-    print(position)
+    # print(position)
+def Create_Entry_Exit(map):
+    entry = np.zeros(shape = (36,2))
+    exit = np.zeros(shape = (40,2))
+    for i in range(0,9):
+        entry[i][1] = map[0][i+1][1]
+        exit [i][1] = entry[i][1]
+    for i in range(9,18):
+        entry[i][0] = map[i-9+1][0][0]
+        exit [i][0] = entry[i][0]
+    for i in range(18,27):
+        entry[i][1] = map[9][i-18+1][1]
+        entry[i][0] = map[9][i-18+1][0] + 2.5
+        exit [i][1] = entry[i][1]
+        exit [i][0] = entry[i][0]
+    for i in range(27,36):
+        entry[i][0] = map[i-27+1][9][0]
+        entry[i][1] = map[i-27+1][9][1] + 2.5
+        exit [i][0] = entry[i][0]
+        exit [i][1] = entry[i][1]
+
+    exit [36][0] = map[0][0][0]
+    exit [36][1] = map[0][0][1]
+    exit [37][0] = map[9][0][0] + 2.5
+    exit [37][1] = map[9][0][1]
+    exit [38][0] = map[9][9][0] + 2.5
+    exit [38][1] = map[9][9][1] + 2.5
+    exit [39][0] = map[0][9][0]
+    exit [39][1] = map[0][9][1] + 2.5
+    return entry,exit
+
 map = CreateRegion()
 CreateBase(map)
+entry,exit = Create_Entry_Exit(map)
