@@ -4,18 +4,62 @@ import cv2
 import seaborn as sns
 import matplotlib.pyplot as plt
 import random
-
-
 from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtGui import QPixmap 
 from PyQt5.QtCore import QTimer
 import random
 threshold = 70
+scale = 50 #fps
 class Ui_Form(object):
     def setupUi(self, Form):
-        scale = 50 #fps
+        
         Form.setObjectName("Form")
-        Form.resize(1020, 1020)
+        Form.resize(1520, 1020)
+        font = QtGui.QFont()
+        font.setFamily("Times New Roman")
+        font.setPointSize(16)
+        
+        self.groupBox = QtWidgets.QGroupBox(Form)
+        self.groupBox.setGeometry(QtCore.QRect(1020, 10, 480, 1000))
+        self.groupBox.setFont(font)
+
+        
+
+        self.label_car = QtWidgets.QLabel(self.groupBox)
+        self.label_car.setFont(font)
+        self.label_car.setGeometry(QtCore.QRect(10, 210, 480, 30))
+        self.label_car.setText('Current car number: ')
+
+        self.start = QtWidgets.QPushButton(self.groupBox)
+        self.start.setFont(font)
+        self.start.setGeometry(QtCore.QRect(10, 70, 200, 100))
+        self.start.setText('Start')
+        self.start.clicked.connect(self.TimerHandler)
+
+        self.fps = QtWidgets.QTextEdit(self.groupBox)
+        self.fps.setText('input fps')
+        self.fps.setGeometry(QtCore.QRect(250, 70, 150, 45))
+
+        self.way = QtWidgets.QTextEdit(self.groupBox)
+        self.way.setText('input methods')
+        self.way.setGeometry(QtCore.QRect(250, 140, 200, 45))
+
+        self.label_threshold_ex = QtWidgets.QLabel(self.groupBox)
+        self.label_threshold_ex.setFont(font)
+        self.label_threshold_ex.setGeometry(QtCore.QRect(10, 310, 480, 30))
+        self.label_threshold_ex.setText('Number of handoff (threshold): ')
+        
+        self.label_best_ex = QtWidgets.QLabel(self.groupBox)
+        self.label_best_ex.setFont(font)
+        self.label_best_ex.setGeometry(QtCore.QRect(10, 410, 480, 30))
+        self.label_best_ex.setText('Number of handoff (Best effort): ')
+        
+        self.label_entropy_ex = QtWidgets.QLabel(self.groupBox)
+        self.label_entropy_ex.setFont(font)
+        self.label_entropy_ex.setGeometry(QtCore.QRect(10, 510, 480, 30))
+        self.label_entropy_ex.setText('Number of handoff (Entropy): ')
+        
+
         self.form = Form
         self.label = QtWidgets.QLabel(Form)
         self.label.setGeometry(QtCore.QRect(10, 10, 1000, 1000))
@@ -24,13 +68,18 @@ class Ui_Form(object):
         self.number = 0
         self.time = 0
         self.exchange = 0
+        self.threshold_ex = 0
+        self.best_ex = 0
+        self.entropy_ex = 0
+        self.method1 = 0
+
 
         self.timer1 = QTimer()
         self.timer1.timeout.connect(self.add) #timer for adding car
-        self.timer1.start(scale)
+        
         self.timer2 = QTimer()
         self.timer2.timeout.connect(self.move) #timer for car moving update
-        self.timer2.start(scale)
+        
     
 
         self.car_number = 0
@@ -42,6 +91,26 @@ class Ui_Form(object):
 
         self.method = 0 # default -> Threshold
 
+        self.label_car_number = QtWidgets.QLabel(self.groupBox)
+        self.label_car_number.setFont(font)
+        self.label_car_number.setGeometry(QtCore.QRect(250, 210, 100, 30))
+        self.label_car_number.setNum(0)
+
+        self.label_thres_number = QtWidgets.QLabel(self.groupBox)
+        self.label_thres_number.setFont(font)
+        self.label_thres_number.setGeometry(QtCore.QRect(400, 310, 100, 30))
+        self.label_thres_number.setNum(0)
+
+        self.label_best_number = QtWidgets.QLabel(self.groupBox)
+        self.label_best_number.setFont(font)
+        self.label_best_number.setGeometry(QtCore.QRect(400, 410, 100, 30))
+        self.label_best_number.setNum(0)
+
+        self.label_entropy_number = QtWidgets.QLabel(self.groupBox)
+        self.label_entropy_number.setFont(font)
+        self.label_entropy_number.setGeometry(QtCore.QRect(400, 510, 100, 30))
+        self.label_entropy_number.setNum(0)
+
         self.retranslateUi(Form)
         QtCore.QMetaObject.connectSlotsByName(Form)
 
@@ -49,12 +118,20 @@ class Ui_Form(object):
         _translate = QtCore.QCoreApplication.translate
         Form.setWindowTitle(_translate("Form", "Form"))
         self.label.setText(_translate("Form", "<html><head/><body><p><img src=\"grid_4.png\"/></p></body></html>"))
+        self.groupBox.setTitle(_translate("Form", "Details"))
+    def TimerHandler(self):
+        value = self.fps.toPlainText()
+        scale = int(value)
+        self.method = int(self.way.toPlainText())
+        self.timer1.start(scale)
+        self.timer2.start(scale)
     def add(self):
         p = self.Poisson(1/12,1,1) # Poisson Distribution for arrival model
         offset = 5
         for i in range(0,36): 
             if random.random() <= p:
                 self.car_number += 1
+                
                 self.dot = QtWidgets.QLabel(self.form)
                 x = self.entry[i][0]*40+offset #plot coordinate x, self.entry is real initial position
                 y = self.entry[i][1]*40+offset #plot coordinate y
@@ -65,8 +142,10 @@ class Ui_Form(object):
                 direction = i // 9
                 step = 0
                 is_call = False
-                base_info = [-1,-1,-1,-1] # x , y , index, db
-                self.car_list.append([self.dot, self.car_number, direction, self.entry[i][0], self.entry[i][1],step,is_call,base_info])
+                base_info = [-1,-1,-1,-1,-1,-1] # x , y , index, db, call time, current time
+                self.car_list.append([self.dot, self.car_number, direction,
+                                     self.entry[i][0], self.entry[i][1],
+                                     step,is_call,base_info])
                 # [0] object
                 # [1] number label
                 # [2] current moving direction
@@ -74,7 +153,7 @@ class Ui_Form(object):
                 # [4] y
                 # [5] plot supported step
                 # [6] is this on call?
-                # [7] selected base information [base_x,base_y,index,db]
+                # [7] selected base information [base_x,base_y,index,db,call time, current time]
     def move(self):
         plot_offset = 40
         self.time += 1
@@ -110,44 +189,36 @@ class Ui_Form(object):
             if item[5] == 5:
                 item[5] = 0
                 item[0].setGeometry(QtCore.QRect(x+x_speed*5*plot_offset, y+y_speed*5*plot_offset, 10, 10))
-            if (self.time % 900 == 0):
-                if random.random() <= p:
-                    if item[6] == False:
+            
+            if item[6] == True: # call time and current call time
+                item[7][5] += 1
+                if item[7][5] == item[7][4]:
+                    item[6] == False
+                    item[7][4] = 0
+                    item[7][5] = 0
+            if self.time % 900 == 0:
+                if random.random() <= p and item[6] == False: # may call second times when timeexpire == 15min
                         item[6] = True # this car calls
+                        time = np.random.normal(loc= 3, scale= 0.5)
                         db,index = self.find_base(item[3],item[4])
                         item[7][0] = self.base[index][2]
                         item[7][1] = self.base[index][3]
                         item[7][2] = index
                         item[7][3] = db
-                        # print(item[1],'is connected to ',item[7][0],item[7][1])
+                        item[7][4] = int(time*60)
             if item[6] == True:
-                choose = self.method
-                if choose == 0:
-                    car_x = item[3]
-                    car_y = item[4]
-                    base_x = item[7][0]
-                    base_y = item[7][1]
-                    index = item[7][2]
-                    temp = index
-                    distance = math.sqrt(abs(car_x - base_x)**2 + abs(car_y - base_y)**2)
-                    db = 120 - self.PathLoss(frequency = self.base[index][4],distance=distance)
-                    if db < threshold:
-                        db, index = self.find_base(car_x,car_y)
-                        item[7][0] = self.base[index][2]
-                        item[7][1] = self.base[index][3]
-                        item[7][2] = index
-                        item[7][3] = db
-                        if temp != index:
-                            print(temp,'change to ',index)
-                        self.exchange += 1
-                elif choose == 1:
-                    None
-                elif choose == 2:
-                    None
-                elif choose == 3:
-                    None
+                if self.method == 0:
+                    self.threshold_ex += self.threshold_method(item)
+                elif self.method == 1:
+                    self.best_ex += self.Best_effort(item)
+                elif self.method == 2:
+                    self.entropy_ex += self.Entropy(item)
+                
         # print(self.time)
-        # print(self.number)
+        self.label_car_number.setNum(len(self.car_list))
+        self.label_thres_number.setNum(self.threshold_ex)
+        self.label_best_number.setNum(self.best_ex)
+        self.label_entropy_number.setNum(self.entropy_ex)
         # print(self.exchange)
     def find_base(self,car_x,car_y):
         min = 100000
@@ -256,6 +327,64 @@ class Ui_Form(object):
         elif dir == 3:
             dir = (dir + rv) % 4
         return dir
+    def threshold_method(self,item):
+        car_x = item[3]
+        car_y = item[4]
+        base_x = item[7][0]
+        base_y = item[7][1]
+        index = item[7][2]
+        distance = math.sqrt(abs(car_x - base_x)**2 + abs(car_y - base_y)**2)
+        db = 120 - self.PathLoss(frequency = self.base[index][4],distance=distance)
+        if db < threshold:
+            db, new_index = self.find_base(car_x,car_y)
+            if new_index != index:
+                item[7][0] = self.base[new_index][2]
+                item[7][1] = self.base[new_index][3]
+                item[7][2] = new_index
+                item[7][3] = db
+                return 1
+            return 0
+    def Best_effort(self,item):
+        car_x = item[3]
+        car_y = item[4]
+        index = item[7][2]
+        max = -1
+        new_index = -1
+        for i,base in enumerate(self.base):
+            distance = math.sqrt(abs(car_x - base[2])**2 + abs(car_y - base[3])**2)
+            db = 120 - self.PathLoss(base[4],distance)
+            if db > max:
+                max = db
+                new_index = i
+        if new_index != index:
+            item[7][0] = self.base[new_index][2]
+            item[7][1] = self.base[new_index][3]
+            item[7][2] = new_index
+            item[7][3] = max
+            return 1
+        return 0
+    def Entropy(self,item):
+        car_x = item[3]
+        car_y = item[4]
+        base_x = item[7][0]
+        base_y = item[7][1]
+        index = item[7][2]
+        distance = math.sqrt(abs(car_x - base_x)**2 + abs(car_y - base_y)**2)
+        loss = self.PathLoss(frequency = self.base[index][4],distance=distance)
+        diff = -1
+        new_index = -1
+        for i,base in enumerate(self.base):
+            if i != index:
+                distance = math.sqrt(abs(car_x - base[2])**2 + abs(car_y - base[3])**2)
+                loss_2 = self.PathLoss(frequency = base[4],distance=distance)
+                diff = loss - loss_2
+                if diff > 25:
+                    item[7][0] = self.base[i][2]
+                    item[7][1] = self.base[i][3]
+                    item[7][2] = i
+                    item[7][3] = 120 - loss_2
+                    return 1
+        return 0
 if __name__ == "__main__":
     import sys
     app = QtWidgets.QApplication(sys.argv)
