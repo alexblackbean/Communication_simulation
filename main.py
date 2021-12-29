@@ -36,6 +36,18 @@ class Ui_Form(object):
         self.start.setText('Start')
         self.start.clicked.connect(self.TimerHandler)
 
+        self.stop = QtWidgets.QPushButton(self.groupBox)
+        self.stop.setFont(font)
+        self.stop.setGeometry(QtCore.QRect(10, 810, 200, 100))
+        self.stop.setText('Stop')
+        self.stop.clicked.connect(self.stopTimer)
+
+        self.reset = QtWidgets.QPushButton(self.groupBox)
+        self.reset.setFont(font)
+        self.reset.setGeometry(QtCore.QRect(260, 810, 200, 100))
+        self.reset.setText('Reset')
+        self.reset.clicked.connect(self.Reset)
+
         self.fps = QtWidgets.QTextEdit(self.groupBox)
         self.fps.setText('input fps')
         self.fps.setGeometry(QtCore.QRect(250, 70, 150, 45))
@@ -59,6 +71,15 @@ class Ui_Form(object):
         self.label_entropy_ex.setGeometry(QtCore.QRect(10, 510, 480, 30))
         self.label_entropy_ex.setText('Number of handoff (Entropy): ')
         
+        self.label_entropy_ex = QtWidgets.QLabel(self.groupBox)
+        self.label_entropy_ex.setFont(font)
+        self.label_entropy_ex.setGeometry(QtCore.QRect(10, 610, 480, 30))
+        self.label_entropy_ex.setText('Number of handoff (own method): ')
+
+        self.label_time = QtWidgets.QLabel(self.groupBox)
+        self.label_time.setFont(font)
+        self.label_time.setGeometry(QtCore.QRect(10, 710, 480, 30))
+        self.label_time.setText('Currently Passing Time: ')
 
         self.form = Form
         self.label = QtWidgets.QLabel(Form)
@@ -111,6 +132,16 @@ class Ui_Form(object):
         self.label_entropy_number.setGeometry(QtCore.QRect(400, 510, 100, 30))
         self.label_entropy_number.setNum(0)
 
+        self.label_own_number = QtWidgets.QLabel(self.groupBox)
+        self.label_own_number.setFont(font)
+        self.label_own_number.setGeometry(QtCore.QRect(400, 610, 100, 30))
+        self.label_own_number.setNum(0)
+
+        self.label_time_number = QtWidgets.QLabel(self.groupBox)
+        self.label_time_number.setFont(font)
+        self.label_time_number.setGeometry(QtCore.QRect(400, 710, 100, 30))
+        self.label_time_number.setNum(self.time)
+
         self.retranslateUi(Form)
         QtCore.QMetaObject.connectSlotsByName(Form)
 
@@ -125,6 +156,21 @@ class Ui_Form(object):
         self.method = int(self.way.toPlainText())
         self.timer1.start(scale)
         self.timer2.start(scale)
+    def stopTimer(self):
+        self.timer1.stop()
+        self.timer2.stop()
+    def Reset(self):
+        self.timer1.stop()
+        self.timer2.stop()
+        for item in self.car_list:
+            item[0].setHidden(True)
+            del item[0]
+            del self.car_list[self.car_list.index(item)]
+        self.label_car_number.setNum(len(self.car_list))
+        self.label_thres_number.setNum(0)
+        self.label_best_number.setNum(0)
+        self.label_entropy_number.setNum(0)
+        self.label_own_number.setNum(0)
     def add(self):
         p = self.Poisson(1/12,1,1) # Poisson Distribution for arrival model
         offset = 5
@@ -143,9 +189,10 @@ class Ui_Form(object):
                 step = 0
                 is_call = False
                 base_info = [-1,-1,-1,-1,-1,-1] # x , y , index, db, call time, current time
+                corner_step = 0
                 self.car_list.append([self.dot, self.car_number, direction,
                                      self.entry[i][0], self.entry[i][1],
-                                     step,is_call,base_info])
+                                     step,is_call,base_info,corner_step])
                 # [0] object
                 # [1] number label
                 # [2] current moving direction
@@ -154,9 +201,11 @@ class Ui_Form(object):
                 # [5] plot supported step
                 # [6] is this on call?
                 # [7] selected base information [base_x,base_y,index,db,call time, current time]
+                # [8] corner step
     def move(self):
         plot_offset = 40
         self.time += 1
+        self.label_time_number.setNum(self.time)
         p = self.Poisson(2,1,0.25) # average 2 call per hour, we focus on every 15minute == 0.25 hour
         for item in self.car_list:
             x = (item[0].x())
@@ -181,7 +230,8 @@ class Ui_Form(object):
             item[2] = dir
             item[3] = item[3] + x_speed
             item[4] = item[4] + y_speed
-            item[5] += 1
+            item[5] += 1 # support plot step
+            item[8] += 1 # corner step 
             if item[3] < 0 or item[3] > 25 or item[4] < 0 or item[4] > 25:
                 item[0].setHidden(True)
                 del item[0]
@@ -213,13 +263,13 @@ class Ui_Form(object):
                     self.best_ex += self.Best_effort(item)
                 elif self.method == 2:
                     self.entropy_ex += self.Entropy(item)
-                
-        # print(self.time)
+                else:
+                    self.method1 += self.ownMethod(item)
         self.label_car_number.setNum(len(self.car_list))
         self.label_thres_number.setNum(self.threshold_ex)
         self.label_best_number.setNum(self.best_ex)
         self.label_entropy_number.setNum(self.entropy_ex)
-        # print(self.exchange)
+        self.label_own_number.setNum(self.method1)
     def find_base(self,car_x,car_y):
         min = 100000
         index = -1
@@ -263,12 +313,13 @@ class Ui_Form(object):
                     x = self.map[i][j][0] + 1.25 + delta_x
                     y = self.map[i][j][1] + 1.25 + delta_y
                     frequency = random.randint(1,10)*100
-                    position.append([i,j,x,y,frequency])  # [0] block_x_info 
+                    poll  = 0
+                    position.append([i,j,x,y,frequency,poll])  # [0] block_x_info 
                                             # [1] block_y_info
                                             # [2] base_x
                                             # [3] base_y 
                                             # [4] base_freq
-        
+                                            # [5] poll
         for item in position:
             base = QtWidgets.QLabel(self.form)
             base.setGeometry(QtCore.QRect(item[2]*40, item[3]*40, 20, 20))
@@ -385,6 +436,45 @@ class Ui_Form(object):
                     item[7][3] = 120 - loss_2
                     return 1
         return 0
+    def ownMethod(self,item):
+        car_x = item[3]
+        car_y = item[4]
+        index = item[7][2]
+        db = item[7][3]
+        new_db = 0
+        if item[8] % 125 == 0:
+            for i,base in enumerate(self.base):
+                if i != index:
+                    distance = math.sqrt(abs(car_x - base[2])**2 + abs(car_y - base[3])**2)
+                    loss = self.PathLoss(base[4],distance)
+                    new_db = 120 - loss
+                    if new_db - db > 0:
+                        base[5] += 1
+                    elif new_db - db == 0:
+                        base[5] += 1
+                    else:
+                        base[5] -= 1
+                if item[8] == 250:
+                    # print('hi')
+                    item[8] = 0
+                    if base[5] >= 1:
+                        item[7][0] = self.base[i][2]
+                        item[7][1] = self.base[i][3]
+                        item[7][2] = i
+                        item[7][3] = 120 - loss
+                        for base in self.base:
+                            base[5] = 0
+                        return 1
+            for base in self.base:
+                base[5] = 0
+        return 0
+
+
+                    
+            
+                    
+
+
 if __name__ == "__main__":
     import sys
     app = QtWidgets.QApplication(sys.argv)
