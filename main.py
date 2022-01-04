@@ -8,7 +8,7 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtGui import QPixmap 
 from PyQt5.QtCore import QTimer
 import random
-threshold = 70
+threshold = 20
 scale = 50 #fps
 class Ui_Form(object):
     def setupUi(self, Form):
@@ -81,6 +81,11 @@ class Ui_Form(object):
         self.label_time.setGeometry(QtCore.QRect(10, 710, 480, 30))
         self.label_time.setText('Currently Passing Time: ')
 
+        self.label_call = QtWidgets.QLabel(self.groupBox)
+        self.label_call.setFont(font)
+        self.label_call.setGeometry(QtCore.QRect(10, 910, 480, 30))
+        self.label_call.setText('Current Call: ')
+
         self.form = Form
         self.label = QtWidgets.QLabel(Form)
         self.label.setGeometry(QtCore.QRect(10, 10, 1000, 1000))
@@ -102,7 +107,7 @@ class Ui_Form(object):
         self.timer2.timeout.connect(self.move) #timer for car moving update
         
     
-
+        self.call = 0
         self.car_number = 0
         self.car_list =[]
         self.map = self.CreateRegion()
@@ -142,6 +147,11 @@ class Ui_Form(object):
         self.label_time_number.setGeometry(QtCore.QRect(400, 710, 100, 30))
         self.label_time_number.setNum(self.time)
 
+        self.label_call_number = QtWidgets.QLabel(self.groupBox)
+        self.label_call_number.setFont(font)
+        self.label_call_number.setGeometry(QtCore.QRect(400, 910, 100, 30))
+        self.label_call_number.setNum(self.call)
+
         self.retranslateUi(Form)
         QtCore.QMetaObject.connectSlotsByName(Form)
 
@@ -171,6 +181,7 @@ class Ui_Form(object):
         self.label_best_number.setNum(0)
         self.label_entropy_number.setNum(0)
         self.label_own_number.setNum(0)
+        self.time = 0
     def add(self):
         p = self.Poisson(1/12,1,1) # Poisson Distribution for arrival model
         offset = 5
@@ -205,8 +216,10 @@ class Ui_Form(object):
     def move(self):
         plot_offset = 40
         self.time += 1
+        if self.time == 10000:
+            self.stopTimer()
         self.label_time_number.setNum(self.time)
-        p = self.Poisson(2,1,0.25) # average 2 call per hour, we focus on every 15minute == 0.25 hour
+        p = self.Poisson(2,1,0.5) # average 2 call per hour, we focus on every 15minute == 0.25 hour
         for item in self.car_list:
             x = (item[0].x())
             y = (item[0].y())
@@ -243,12 +256,15 @@ class Ui_Form(object):
             if item[6] == True: # call time and current call time
                 item[7][5] += 1
                 if item[7][5] == item[7][4]:
+                    self.call -= 1
                     item[6] == False
                     item[7][4] = 0
                     item[7][5] = 0
-            if self.time % 900 == 0:
+            # call release
+            if self.time % 1800 == 0:
                 if random.random() <= p and item[6] == False: # may call second times when timeexpire == 15min
                         item[6] = True # this car calls
+                        self.call += 1
                         time = np.random.normal(loc= 3, scale= 0.5)
                         db,index = self.find_base(item[3],item[4])
                         item[7][0] = self.base[index][2]
@@ -270,6 +286,7 @@ class Ui_Form(object):
         self.label_best_number.setNum(self.best_ex)
         self.label_entropy_number.setNum(self.entropy_ex)
         self.label_own_number.setNum(self.method1)
+        self.label_call_number.setNum(self.call)
     def find_base(self,car_x,car_y):
         min = 100000
         index = -1
@@ -394,7 +411,7 @@ class Ui_Form(object):
                 item[7][2] = new_index
                 item[7][3] = db
                 return 1
-            return 0
+        return 0
     def Best_effort(self,item):
         car_x = item[3]
         car_y = item[4]
@@ -468,12 +485,6 @@ class Ui_Form(object):
             for base in self.base:
                 base[5] = 0
         return 0
-
-
-                    
-            
-                    
-
 
 if __name__ == "__main__":
     import sys
