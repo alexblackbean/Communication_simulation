@@ -1,96 +1,136 @@
+'''Using PyQt5 to create a GUI for the user to interact with the program'''
+# from PyQt5 import QtCore, QtGui, QtWidgets
+# from PyQt5.QtGui import QPixmap 
+# from PyQt5.QtCore import QTimer, QRect
+# from PyQt5.QtWidgets import QLabel
+'''Using PyQt6 to create a GUI for the user to interact with the program'''
+from re import I
+from PyQt6 import QtCore, QtGui, QtWidgets
+from PyQt6.QtGui import QPixmap
+from PyQt6.QtCore import QTimer, QRect
+from PyQt6.QtWidgets import QLabel
+'''Importing the other files'''
 import numpy as np
 import math
 import cv2
-import seaborn as sns
 import matplotlib.pyplot as plt
 import random
-from PyQt5 import QtCore, QtGui, QtWidgets
-from PyQt5.QtGui import QPixmap 
-from PyQt5.QtCore import QTimer
-import random
+
+scale_map = 20
 threshold = 20
 scale = 50 #fps
 class Ui_Form(object):
-    def setupUi(self, Form):
-        
-        Form.setObjectName("Form")
-        Form.resize(1520, 1020)
-        font = QtGui.QFont()
-        font.setFamily("Times New Roman")
-        font.setPointSize(16)
-        
-        self.groupBox = QtWidgets.QGroupBox(Form)
-        self.groupBox.setGeometry(QtCore.QRect(1020, 10, 480, 1000))
-        self.groupBox.setFont(font)
+    font = QtGui.QFont()
+    font.setFamily("Times New Roman")
+    font.setPointSize(16)
 
-        
+    text_base_x = 10
+    text_base_y = 70
 
-        self.label_car = QtWidgets.QLabel(self.groupBox)
-        self.label_car.setFont(font)
-        self.label_car.setGeometry(QtCore.QRect(10, 210, 480, 30))
-        self.label_car.setText('Current car number: ')
+    button_base_x = 10
+    button_base_y = 170
+    def object_initialize(self, Form):
+       
+        self.control_panel = QtWidgets.QGroupBox(Form)
+        self.control_panel.setGeometry(QtCore.QRect(520, 10, 480, 500))
+        self.control_panel.setFont(self.font)
+        self.control_panel.setStyleSheet("background-color: ")
 
-        self.start = QtWidgets.QPushButton(self.groupBox)
-        self.start.setFont(font)
-        self.start.setGeometry(QtCore.QRect(10, 70, 200, 100))
+        '''Button setup region'''
+        self.start = QtWidgets.QPushButton(self.control_panel)
+        self.start.setFont(self.font)
+        self.start.setGeometry(QtCore.QRect(self.button_base_x, self.button_base_y, 150, 50))
         self.start.setText('Start')
         self.start.clicked.connect(self.TimerHandler)
 
-        self.stop = QtWidgets.QPushButton(self.groupBox)
-        self.stop.setFont(font)
-        self.stop.setGeometry(QtCore.QRect(10, 810, 200, 100))
+        self.stop = QtWidgets.QPushButton(self.control_panel)
+        self.stop.setFont(self.font)
+        self.stop.setGeometry(QtCore.QRect(self.button_base_x, self.button_base_y + 60, 150, 50))
         self.stop.setText('Stop')
         self.stop.clicked.connect(self.stopTimer)
 
-        self.reset = QtWidgets.QPushButton(self.groupBox)
-        self.reset.setFont(font)
-        self.reset.setGeometry(QtCore.QRect(260, 810, 200, 100))
-        self.reset.setText('Reset')
+        self.reset = QtWidgets.QPushButton(self.control_panel)
+        self.reset.setFont(self.font)
+        self.reset.setGeometry(QtCore.QRect(self.button_base_x, self.button_base_y + 120, 150, 50))
+        self.reset.setText('reset')
         self.reset.clicked.connect(self.Reset)
+        '''End of button setup region'''
 
-        self.fps = QtWidgets.QTextEdit(self.groupBox)
-        self.fps.setText('input fps')
-        self.fps.setGeometry(QtCore.QRect(250, 70, 150, 45))
+        '''Text setup region'''
+        self.control_title = QLabel(self.control_panel)
+        self.control_title.setText("Control Panel")
+        self.control_title.setStyleSheet("background-color: rgba(0, 0, 0, 80)")
+        self.control_title.setGeometry(QRect(15, 10, 450, 30))
+        self.control_title.setFont(QtGui.QFont("Times New Roman", 28)) 
+        self.control_title.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
 
-        self.way = QtWidgets.QTextEdit(self.groupBox)
-        self.way.setText('input methods')
-        self.way.setGeometry(QtCore.QRect(250, 140, 200, 45))
+        self.debug_terminal = QtWidgets.QTextBrowser(self.control_panel)
+        self.debug_terminal.setGeometry(QRect(10, 350, 460, 190))
+        # self.debug_terminal.setStyleSheet("{background-color: rgba(255, 255 , 255, 100%);ck;}")
 
-        self.label_threshold_ex = QtWidgets.QLabel(self.groupBox)
-        self.label_threshold_ex.setFont(font)
-        self.label_threshold_ex.setGeometry(QtCore.QRect(10, 310, 480, 30))
+        self.fps_label = QtWidgets.QLabel(self.control_panel)
+        self.fps_label.setText("input fps")
+        self.fps_label.setGeometry(QtCore.QRect(self.text_base_x, self.text_base_y - 25, 150, 25))
+
+        self.fps = QtWidgets.QTextEdit(self.control_panel)
+        self.fps.setText('100')
+        self.fps.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
+        self.fps.setGeometry(QtCore.QRect(self.text_base_x, self.text_base_y, 150, 25))
+
+        self.way_label = QtWidgets.QLabel(self.control_panel)
+        self.way_label.setText("input method 0 ~ 3")
+        self.way_label.setGeometry(QtCore.QRect(self.text_base_x, self.text_base_y + 25, 150, 25))
+
+        self.way = QtWidgets.QTextEdit(self.control_panel)
+        self.way.setText('method 0')
+        self.way.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
+        self.way.setGeometry(QtCore.QRect(self.text_base_x, self.text_base_y + 50, 150, 25))
+
+
+
+        self.label_car = QtWidgets.QLabel(self.control_panel)
+        self.label_car.setFont(self.font)
+        self.label_car.setGeometry(QtCore.QRect(self.text_base_x + 180, self.text_base_y, 200, 30))
+        self.label_car.setText('Current car number: ')
+
+        self.label_threshold_ex = QtWidgets.QLabel(self.control_panel)
+        self.label_threshold_ex.setFont(self.font)
+        self.label_threshold_ex.setGeometry(QtCore.QRect(self.text_base_x + 180, self.text_base_y + 40, 480, 30))
         self.label_threshold_ex.setText('Number of handoff (threshold): ')
-        
-        self.label_best_ex = QtWidgets.QLabel(self.groupBox)
-        self.label_best_ex.setFont(font)
-        self.label_best_ex.setGeometry(QtCore.QRect(10, 410, 480, 30))
+
+        self.label_best_ex = QtWidgets.QLabel(self.control_panel)
+        self.label_best_ex.setFont(self.font)
+        self.label_best_ex.setGeometry(QtCore.QRect(self.text_base_x + 180, self.text_base_y + 80, 480, 30))
         self.label_best_ex.setText('Number of handoff (Best effort): ')
-        
-        self.label_entropy_ex = QtWidgets.QLabel(self.groupBox)
-        self.label_entropy_ex.setFont(font)
-        self.label_entropy_ex.setGeometry(QtCore.QRect(10, 510, 480, 30))
+ 
+        self.label_entropy_ex = QtWidgets.QLabel(self.control_panel)
+        self.label_entropy_ex.setFont(self.font)
+        self.label_entropy_ex.setGeometry(QtCore.QRect(self.text_base_x + 180, self.text_base_y + 120, 480, 30))
         self.label_entropy_ex.setText('Number of handoff (Entropy): ')
-        
-        self.label_entropy_ex = QtWidgets.QLabel(self.groupBox)
-        self.label_entropy_ex.setFont(font)
-        self.label_entropy_ex.setGeometry(QtCore.QRect(10, 610, 480, 30))
+ 
+        self.label_entropy_ex = QtWidgets.QLabel(self.control_panel)
+        self.label_entropy_ex.setFont(self.font)
+        self.label_entropy_ex.setGeometry(QtCore.QRect(self.text_base_x + 180, self.text_base_y + 160, 480, 30))
         self.label_entropy_ex.setText('Number of handoff (own method): ')
 
-        self.label_time = QtWidgets.QLabel(self.groupBox)
-        self.label_time.setFont(font)
-        self.label_time.setGeometry(QtCore.QRect(10, 710, 480, 30))
+        self.label_time = QtWidgets.QLabel(self.control_panel)
+        self.label_time.setFont(self.font)
+        self.label_time.setGeometry(QtCore.QRect(self.text_base_x + 180, self.text_base_y + 200, 480, 30))
         self.label_time.setText('Currently Passing Time: ')
 
-        self.label_call = QtWidgets.QLabel(self.groupBox)
-        self.label_call.setFont(font)
-        self.label_call.setGeometry(QtCore.QRect(10, 910, 480, 30))
+        self.label_call = QtWidgets.QLabel(self.control_panel)
+        self.label_call.setFont(self.font)
+        self.label_call.setGeometry(QtCore.QRect(self.text_base_x + 180, self.text_base_y + 240, 480, 30))
         self.label_call.setText('Current Call: ')
+        '''End of text setup region'''
 
-        self.form = Form
-        self.label = QtWidgets.QLabel(Form)
-        self.label.setGeometry(QtCore.QRect(10, 10, 1000, 1000))
-        self.label.setObjectName("label")
-
+        '''Image label setup region'''
+        self.map_img = QLabel(Form)
+        self.map_img.setPixmap(QPixmap("../image/grid_500.png")) 
+        self.map_img.setGeometry(QRect(10, 10, 500, 500))
+        '''End of image label setup region'''
+        
+        '''Item setup region'''
         self.number = 0
         self.time = 0
         self.exchange = 0
@@ -99,89 +139,109 @@ class Ui_Form(object):
         self.entropy_ex = 0
         self.method1 = 0
 
-
-        self.timer1 = QTimer()
-        self.timer1.timeout.connect(self.add) #timer for adding car
-        
-        self.timer2 = QTimer()
-        self.timer2.timeout.connect(self.move) #timer for car moving update
-        
-    
         self.call = 0
         self.car_number = 0
         self.car_list =[]
+        self.form = Form
+        
+
+        self.method = 0 # default -> Threshold
+
+        
         self.map = self.CreateRegion()
         self.base = self.CreateBase()
         self.entry,self.exit = self.Create_Entry_Exit()
         self.corner = self.GetCorner()
 
-        self.method = 0 # default -> Threshold
+        self.timer1 = QTimer()
+        self.timer1.timeout.connect(self.add) #timer for adding car
 
-        self.label_car_number = QtWidgets.QLabel(self.groupBox)
-        self.label_car_number.setFont(font)
-        self.label_car_number.setGeometry(QtCore.QRect(250, 210, 100, 30))
+        self.timer2 = QTimer()
+        self.timer2.timeout.connect(self.move) #timer for car moving update
+
+
+        self.label_car_number = QtWidgets.QLabel(self.control_panel)
+        self.label_car_number.setFont(self.font)
+        self.label_car_number.setGeometry(QtCore.QRect(450, 70, 100, 30))
         self.label_car_number.setNum(0)
 
-        self.label_thres_number = QtWidgets.QLabel(self.groupBox)
-        self.label_thres_number.setFont(font)
-        self.label_thres_number.setGeometry(QtCore.QRect(400, 310, 100, 30))
+        self.label_thres_number = QtWidgets.QLabel(self.control_panel)
+        self.label_thres_number.setFont(self.font)
+        self.label_thres_number.setGeometry(QtCore.QRect(450, 110, 100, 30))
         self.label_thres_number.setNum(0)
 
-        self.label_best_number = QtWidgets.QLabel(self.groupBox)
-        self.label_best_number.setFont(font)
-        self.label_best_number.setGeometry(QtCore.QRect(400, 410, 100, 30))
+        self.label_best_number = QtWidgets.QLabel(self.control_panel)
+        self.label_best_number.setFont(self.font)
+        self.label_best_number.setGeometry(QtCore.QRect(450, 150, 100, 30))
         self.label_best_number.setNum(0)
 
-        self.label_entropy_number = QtWidgets.QLabel(self.groupBox)
-        self.label_entropy_number.setFont(font)
-        self.label_entropy_number.setGeometry(QtCore.QRect(400, 510, 100, 30))
+        self.label_entropy_number = QtWidgets.QLabel(self.control_panel)
+        self.label_entropy_number.setFont(self.font)
+        self.label_entropy_number.setGeometry(QtCore.QRect(450, 190, 100, 30))
         self.label_entropy_number.setNum(0)
 
-        self.label_own_number = QtWidgets.QLabel(self.groupBox)
-        self.label_own_number.setFont(font)
-        self.label_own_number.setGeometry(QtCore.QRect(400, 610, 100, 30))
+        self.label_own_number = QtWidgets.QLabel(self.control_panel)
+        self.label_own_number.setFont(self.font)
+        self.label_own_number.setGeometry(QtCore.QRect(450, 230, 100, 30))
         self.label_own_number.setNum(0)
 
-        self.label_time_number = QtWidgets.QLabel(self.groupBox)
-        self.label_time_number.setFont(font)
-        self.label_time_number.setGeometry(QtCore.QRect(400, 710, 100, 30))
+        self.label_time_number = QtWidgets.QLabel(self.control_panel)
+        self.label_time_number.setFont(self.font)
+        self.label_time_number.setGeometry(QtCore.QRect(450, 270, 100, 30))
         self.label_time_number.setNum(self.time)
 
-        self.label_call_number = QtWidgets.QLabel(self.groupBox)
-        self.label_call_number.setFont(font)
-        self.label_call_number.setGeometry(QtCore.QRect(400, 910, 100, 30))
+        self.label_call_number = QtWidgets.QLabel(self.control_panel)
+        self.label_call_number.setFont(self.font)
+        self.label_call_number.setGeometry(QtCore.QRect(450, 310, 100, 30))
         self.label_call_number.setNum(self.call)
+        '''End of item setup region'''
 
-        self.retranslateUi(Form)
-        QtCore.QMetaObject.connectSlotsByName(Form)
+        pass
+    def CreateRegion(self):
+        position = np.zeros(shape = (10,10,2))
+        for i in range (0,10):
+            for j in range (0,10):
+                position[i][j][0] = i*2.5
+                position[i][j][1] = j*2.5
+        return position
+    def CreateBase(self):
+        position = []
+        prob_array_10 = np.array([False,False,False,False,False,False,False,False,False,True],dtype = bool)
+        prob_array_4 = np.array([0,1,2,3])
+        for i in range (0,10):
+            for j in range (0,10):
+                index = random.randint(0,9)
+                if (prob_array_10[index]):
+                    index = random.randint(0,3)
+                    delta_x = 0; delta_y = 0
+                    if (prob_array_4[index] == 0):# up offset
+                        delta_y = -0.1
+                    elif (prob_array_4[index] == 1):# right offset
+                        delta_x = 0.1
+                    elif (prob_array_4[index] == 2):# down offset
+                        delta_y = 0.1 
+                    elif (prob_array_4[index] == 3):# left offset
+                        delta_x = -0.1
+                    x = self.map[i][j][0] + 1.25 + delta_x # 1.25 is to the center of the square
+                    y = self.map[i][j][1] + 1.25 + delta_y
+                    frequency = random.randint(1,10)*100
+                    poll  = 0
+                    position.append([i, j, x, y, frequency, poll])  # [0] block_x_info 
+                                            # [1] block_y_info
+                                            # [2] base_x
+                                            # [3] base_y 
+                                            # [4] base_freq
+                                            # [5] poll
+        for item in position:
+            base = QtWidgets.QLabel(self.form)
+            base.setGeometry(QtCore.QRect(int(item[2]*20), int(item[3]*20), 10, 10)) # 20 is scale of the map, 20 = 50 (a block of map) // 2.5(real world block distance)
+            base.setObjectName("base")
+            self.debug_terminal.append("base is added at x={}, y={}".format(item[2], item[3]))
+            # self.debug_terminal.append("base is added at")
+            base.setPixmap(QPixmap('../image/base_img.png'))
+            base.show()
+        return position
 
-    def retranslateUi(self, Form):
-        _translate = QtCore.QCoreApplication.translate
-        Form.setWindowTitle(_translate("Form", "Form"))
-        self.label.setText(_translate("Form", "<html><head/><body><p><img src=\"grid_4.png\"/></p></body></html>"))
-        self.groupBox.setTitle(_translate("Form", "Details"))
-    def TimerHandler(self):
-        value = self.fps.toPlainText()
-        scale = int(value)
-        self.method = int(self.way.toPlainText())
-        self.timer1.start(scale)
-        self.timer2.start(scale)
-    def stopTimer(self):
-        self.timer1.stop()
-        self.timer2.stop()
-    def Reset(self):
-        self.timer1.stop()
-        self.timer2.stop()
-        for item in self.car_list:
-            item[0].setHidden(True)
-            del item[0]
-            del self.car_list[self.car_list.index(item)]
-        self.label_car_number.setNum(len(self.car_list))
-        self.label_thres_number.setNum(0)
-        self.label_best_number.setNum(0)
-        self.label_entropy_number.setNum(0)
-        self.label_own_number.setNum(0)
-        self.time = 0
     def add(self):
         p = self.Poisson(1/12,1,1) # Poisson Distribution for arrival model
         offset = 5
@@ -190,11 +250,12 @@ class Ui_Form(object):
                 self.car_number += 1
                 
                 self.dot = QtWidgets.QLabel(self.form)
-                x = self.entry[i][0]*40+offset #plot coordinate x, self.entry is real initial position
-                y = self.entry[i][1]*40+offset #plot coordinate y
-                self.dot.setGeometry(QtCore.QRect(x, y, 10, 10))# plot behavior
+                x = self.entry[i][0]*scale_map+offset+3 #plot coordinate x, self.entry is real initial position
+                y = self.entry[i][1]*scale_map+offset #plot coordinate y
+                self.dot.setGeometry(QtCore.QRect(int(x), int(y), 5, 5))# plot behavior
                 self.dot.setObjectName("dot") # objectName
-                self.dot.setPixmap(QPixmap('dot.png')) #image set
+                self.dot.setPixmap(QPixmap('../image/dot.png')) #image set
+                
                 self.dot.show()# show image
                 direction = i // 9
                 step = 0
@@ -214,7 +275,6 @@ class Ui_Form(object):
                 # [7] selected base information [base_x,base_y,index,db,call time, current time]
                 # [8] corner step
     def move(self):
-        plot_offset = 40
         self.time += 1
         if self.time == 10000:
             self.stopTimer()
@@ -223,9 +283,13 @@ class Ui_Form(object):
         for item in self.car_list:
             x = (item[0].x())
             y = (item[0].y())
+            # modify
+            x = x - 3 # offset
             dir = item[2]
             if x in self.corner and y in self.corner:
                 dir = self.GetDirection(dir)
+            x = x + 3
+            # 72 km/hr = 0.02 km/s
             x_speed = 0
             y_speed = 0
             if dir == 0:
@@ -251,7 +315,7 @@ class Ui_Form(object):
                 del self.car_list[self.car_list.index(item)]
             if item[5] == 5:
                 item[5] = 0
-                item[0].setGeometry(QtCore.QRect(x+x_speed*5*plot_offset, y+y_speed*5*plot_offset, 10, 10))
+                item[0].setGeometry(QtCore.QRect(int(x+x_speed*5*10), int(y+y_speed*5*10), 10, 10))
             
             if item[6] == True: # call time and current call time
                 item[7][5] += 1
@@ -273,20 +337,55 @@ class Ui_Form(object):
                         item[7][3] = db
                         item[7][4] = int(time*60)
             if item[6] == True:
-                if self.method == 0:
+                if self.method == "method 0":
                     self.threshold_ex += self.threshold_method(item)
-                elif self.method == 1:
+                elif self.method == "method 1":
                     self.best_ex += self.Best_effort(item)
-                elif self.method == 2:
+                elif self.method == "method 2":
                     self.entropy_ex += self.Entropy(item)
-                else:
+                elif self.method == "method 3":
                     self.method1 += self.ownMethod(item)
         self.label_car_number.setNum(len(self.car_list))
         self.label_thres_number.setNum(self.threshold_ex)
         self.label_best_number.setNum(self.best_ex)
         self.label_entropy_number.setNum(self.entropy_ex)
         self.label_own_number.setNum(self.method1)
-        self.label_call_number.setNum(self.call)
+   
+
+    def TimerHandler(self):
+        value = self.fps.toPlainText()
+        scale = int(value)
+        self.method = self.way.toPlainText()
+        self.timer1.start(scale)
+        self.timer2.start(scale)
+    def stopTimer(self):
+        self.timer1.stop()
+        self.timer2.stop()
+    def Reset(self):
+        counter_temp = 0
+        self.timer1.stop()
+        self.timer2.stop()
+
+        for i in range(0, len(self.car_list)):
+            (self.car_list[i])[0].setHidden(True)
+            del (self.car_list[i])[0]
+        del self.car_list
+        self.car_list = []
+
+        self.label_car_number.setNum(len(self.car_list))
+        self.label_thres_number.setNum(0)
+        self.label_best_number.setNum(0)
+        self.label_entropy_number.setNum(0)
+        self.label_own_number.setNum(0)
+        self.label_time_number.setNum(0)
+
+        self.threshold_ex = 0
+        self.best_ex = 0
+        self.entropy_ex = 0
+        self.method1 = 0
+        self.call = 0
+        self.time = 0
+    
     def find_base(self,car_x,car_y):
         min = 100000
         index = -1
@@ -301,49 +400,8 @@ class Ui_Form(object):
         db = 120 - loss
         return db,index
             
-    def CreateRegion(self):
-        position = np.zeros(shape = (10,10,2))
-        for i in range (0,10):
-            for j in range (0,10):
-                position[i][j][0] = i*2.5
-                position[i][j][1] = j*2.5
-        return position
-    def CreateBase(self):
-        position = []
-        prob_array_10 = np.array([False,False,False,False,False,False,False,False,False,True],dtype = bool)
-        prob_array_4 = np.array([0,1,2,3])
-        for i in range (0,10):
-            for j in range (0,10):
-                index = random.randint(0,9)
-                if (prob_array_10[index]):
-                    index = random.randint(0,3)
-                    delta_x = 0
-                    delta_y = 0
-                    if (prob_array_4[index] == 0):# up
-                        delta_y = -0.1
-                    elif (prob_array_4[index] == 1):# right
-                        delta_x = 0.1
-                    elif (prob_array_4[index] == 2):# down
-                        delta_y = 0.1
-                    elif (prob_array_4[index] == 3):# left
-                        delta_x = -0.1
-                    x = self.map[i][j][0] + 1.25 + delta_x
-                    y = self.map[i][j][1] + 1.25 + delta_y
-                    frequency = random.randint(1,10)*100
-                    poll  = 0
-                    position.append([i,j,x,y,frequency,poll])  # [0] block_x_info 
-                                            # [1] block_y_info
-                                            # [2] base_x
-                                            # [3] base_y 
-                                            # [4] base_freq
-                                            # [5] poll
-        for item in position:
-            base = QtWidgets.QLabel(self.form)
-            base.setGeometry(QtCore.QRect(item[2]*40, item[3]*40, 20, 20))
-            base.setObjectName("base")
-            base.setPixmap(QPixmap('base_2.png'))
-            base.show()
-        return position
+
+
     def Create_Entry_Exit(self):
         entry = np.zeros(shape = (36,2))
         exit = np.zeros(shape = (40,2))
@@ -441,6 +499,7 @@ class Ui_Form(object):
         loss = self.PathLoss(frequency = self.base[index][4],distance=distance)
         diff = -1
         new_index = -1
+        print("hi")
         for i,base in enumerate(self.base):
             if i != index:
                 distance = math.sqrt(abs(car_x - base[2])**2 + abs(car_y - base[3])**2)
@@ -472,7 +531,6 @@ class Ui_Form(object):
                     else:
                         base[5] -= 1
                 if item[8] == 250:
-                    # print('hi')
                     item[8] = 0
                     if base[5] >= 1:
                         item[7][0] = self.base[i][2]
@@ -490,8 +548,12 @@ if __name__ == "__main__":
     import sys
     app = QtWidgets.QApplication(sys.argv)
     Form = QtWidgets.QWidget()
+    Form.setWindowTitle("Communication Simulator")
+    Form.resize(1020, 520)
     ui = Ui_Form()
-    ui.setupUi(Form)
+    ui.object_initialize(Form)
+    # ui.setupUi(Form)
     Form.show()
-    sys.exit(app.exec_())
+    # sys.exit(app.exec_()) PyQt5
+    sys.exit(app.exec())
 
